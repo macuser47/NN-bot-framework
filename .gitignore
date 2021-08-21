@@ -1,3 +1,7 @@
 
 *.mp4
 *.csv
+*.pyc
+recorded data.zip
+sparse_autoe_features.pickle
+sparse_autoe_labels.pickle

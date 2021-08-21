@@ -35,7 +35,7 @@ def load_model():
     print("Loaded model from disk")
     model.compile(
         loss="mean_squared_error",
-        optimizer=SGD(lr=0.01, momentum=0.9),
+        optimizer=SGD(lr=0.001, momentum=0.9),
         metrics=["accuracy"],
     )
 
@@ -83,7 +83,7 @@ def main():
 
     while True:
         ky.press
-        time.sleep(1 / 10)
+        time.sleep(1 / 5)
         img, h, w, topleft = capture(process_name)
 
         prediction = predict(model, img)
@@ -95,15 +95,25 @@ def main():
         if ky.is_pressed("p"):
             break
 
+        for child_array in prediction:
+            print(f"Mouse X: {child_array[0]}")
+            print(f"Mouse Y: {child_array[1]}")
+            print(f"Mouse L: {child_array[2]}")
+            print(f"W Key: {child_array[3]}")
+            print(f"A Key: {child_array[4]}")
+            print(f"S Key: {child_array[5]}")
+            print(f"D Key: {child_array[6]}")
+            print(f"F Key: {child_array[7]}")
+
         x = prediction[0][0] * w + topleft[0]
         y = prediction[0][1] * h + topleft[1]
 
         mouse.position = (x, y)
 
         # Left Click
-        if prediction[0][2] > 0.5:
+        if prediction[0][2] > 0.05:
             mouse.press(Button.left)
-        if prediction[0][2] < 0.5:
+        if prediction[0][2] < 0.05:
             mouse.release(Button.left)
         if prediction[0][3] > 0.5:
             ky.press("w")

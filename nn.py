@@ -12,6 +12,7 @@ from keras.layers import (
     Dropout,
     MaxPooling2D,
     Conv2D,
+    GRU,
 )
 from keras.layers import LeakyReLU, SimpleRNN
 from tensorflow.keras.optimizers import Adam, Adagrad, SGD, RMSprop
@@ -62,26 +63,35 @@ class neural_network:
         return
 
     def optimizer(self):
-        return SGD(lr=0.01, momentum=0.9)
+        return SGD(lr=0.001, momentum=0.9)
 
     def create_model(self):
 
         model = Sequential()
         model.add(
             Conv2D(
-                24,
-                (2, 2),
+                32,
+                (3, 3),
                 data_format="channels_last",
                 padding="valid",
                 activation="relu",
                 input_shape=(imgX, imgy, 3),
             )
         )
-        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(
+            Conv2D(
+                32,
+                (2, 2),
+                data_format="channels_last",
+                padding="valid",
+                activation="relu",
+            )
+        )
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add((Flatten()))
-        model.add(Dense(200, activation="relu", use_bias=True))
-        model.add(Dense(128, activation="relu", use_bias=True))
+        model.add(Dropout(0.25))
+        model.add(Dense(256, activation="relu", use_bias=True))
+        model.add(Dense(256, activation="relu", use_bias=True))
         model.add(Dense(128, activation="relu", use_bias=True))
         model.add(Dense(8, activation="sigmoid"))
 
