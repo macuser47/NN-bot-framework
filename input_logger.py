@@ -3,7 +3,7 @@ import win32api
 from pynput.mouse import Button, Controller
 import screen_capture
 
-process_name = "noita"
+process_name = "RotMGExalt"
 
 
 class input_logger:
@@ -14,12 +14,11 @@ class input_logger:
 
         key_down = []
 
-        # for key in ["w", "a", "s", "d", "f"]: NOITA
-        # if ky.is_pressed(key):
-        #     print(f"{key} pressed!")
-        #     key_down.append(1)
-        # else:
-        #     key_down.append(0)
+        for key in ['q', 'e', 'w', 'a','s','d','f','v','r',' ']:
+            if ky.is_pressed(key):
+                key_down.append(1)
+            else:
+                key_down.append(0)
 
         return key_down
 
@@ -34,11 +33,14 @@ class input_logger:
             process_name
         )
 
+        width = bot_right_coordinate[0] - top_left_coordinate[0]
+        height = bot_right_coordinate[1] - top_left_coordinate[1]
+
         # x pos
-        mouse_pos_1 = (mouse_pos[0] - top_left_coordinate[0]) / 1600
+        mouse_pos_1 = (mouse_pos[0] - top_left_coordinate[0]) / width
 
         # y pos
-        mouse_pos_2 = (mouse_pos[1] - top_left_coordinate[1]) / 900
+        mouse_pos_2 = (mouse_pos[1] - top_left_coordinate[1]) / height
 
         if mouse_pos_1 > bot_right_coordinate[0] - top_left_coordinate[0]:
             mouse_pos_1 = bot_right_coordinate[0] - top_left_coordinate[0]

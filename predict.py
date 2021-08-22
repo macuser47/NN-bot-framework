@@ -119,17 +119,17 @@ def main():
         if prediction[0][2] > 0.5:
             mouse.press(Button.left)
 
-        if prediction[0][2] < 0.5:
+        if prediction[0][2] <= 0.5:
             mouse.release(Button.left)
 
         if prediction[0][3] > 0.5:
             ky.press('q')
-        if prediction[0][3] < 0.5:
+        if prediction[0][3] <= 0.5:
             ky.release('q')
 
         if prediction[0][4] > 0.5:
             ky.press('e')
-        if prediction[0][4] < 0.5:
+        if prediction[0][4] <= 0.5:
             ky.release('e')
 
 
@@ -138,40 +138,43 @@ def main():
 
         if prediction[0][5] > 0.5:
             ky.press('w')
-        if prediction[0][5] < 0.5:
+        if prediction[0][5] <= 0.5:
             ky.release('w')
 
         if prediction[0][6] > 0.5:
             ky.press('a')
-        if prediction[0][6] < 0.5:
+        if prediction[0][6] <= 0.5:
             ky.release('a')
 
         if prediction[0][7] > 0.5:
             ky.press('s')
-        if prediction[0][7] < 0.5:
+        if prediction[0][7] <= 0.5:
             ky.release('s')
 
         if prediction[0][8] > 0.5:
             ky.press('d')
-        if prediction[0][8] < 0.5:
+        if prediction[0][8] <= 0.5:
             ky.release('d')
 
         if prediction[0][9] > 0.5:
             ky.press('f')
-            time.sleep(1/30)
+        if prediction[0][9] <= 0.5:
             ky.release('f')
-            time.sleep(1/30)
+
         if prediction[0][10] > 0.5:
             ky.press('v')
-            time.sleep(1/30)
+        if prediction[0][10] <= 0.5:
             ky.release('v')
-            time.sleep(1/30)
+
         if prediction[0][11] > 0.5:
             ky.press('r')
-            time.sleep(1/30)
+        if prediction[0][11] <= 0.5:
             ky.release('r')
-            time.sleep(1/30)
 
+        if prediction[0][12] > 0.5:
+            ky.press(' ')
+        if prediction[0][12] <= 0.5:
+            ky.release(' ')
 
 
 

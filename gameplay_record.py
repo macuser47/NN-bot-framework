@@ -13,9 +13,9 @@ import cv2
 
 filename = "output.mp4"
 
-mp4 = f"generate_mp4.py -e jpg -fps 30 -d images"
+mp4 = f"python generate_mp4.py -e jpg -fps 30 -d images"
 
-application_name = "Galcon 2"
+application_name = "RotMGExalt"
 
 
 def main():
@@ -56,8 +56,8 @@ def main():
                     [
                         mouse_state[0],
                         mouse_state[1],
-                        mouse_state[2]
-                        # *keyboard_state,
+                        mouse_state[2],
+                        *keyboard_state,
                     ]
                 )
                 i += 1
@@ -83,7 +83,7 @@ def cleanup():
     shutil.move(f"{str(filename)}", output)
     shutil.move("gameplay.csv", output)
 
-    shutil.move(output, "recorded data")
+    shutil.move(output, "raw recordings")
 
 
 if __name__ == "__main__":
