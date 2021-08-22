@@ -83,7 +83,7 @@ class neural_network:
         model.add(Dense(200, activation="relu", use_bias=True))
         model.add(Dense(128, activation="relu", use_bias=True))
         model.add(Dense(128, activation="relu", use_bias=True))
-        model.add(Dense(8, activation="sigmoid"))
+        model.add(Dense(13, activation="sigmoid"))
 
         model.compile(
             loss="mean_squared_error",
