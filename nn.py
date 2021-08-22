@@ -138,8 +138,9 @@ class neural_network:
     def load_data(self):
         for i in range(100):
             for folder in os.listdir(self.data_dir):
+                if folder.startswith('.') or (not os.path.isdir(os.path.join(self.data_dir, folder))):
+                    continue
                 for data in os.listdir(os.path.join(self.data_dir, folder)):
-
                     if data.endswith(".mp4"):
                         frames, h, w = self.unpack_mp4(
                             os.path.abspath(os.path.join(self.data_dir, folder, data))
