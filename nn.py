@@ -19,6 +19,7 @@ import tensorflow as tf
 from pympler import asizeof
 
 import cv2
+import json
 import keras.backend as K
 from numpy import loadtxt
 import numpy as np
@@ -33,10 +34,10 @@ imgy = 90
 
 
 class neural_network:
-    def __init__(self):
+    def __init__(self, data_dir="recorded data", model_dir="model"):
         self.cwd = os.getcwd()
-        self.data_dir = os.path.join(self.cwd, "recorded data")
-        self.model_dir = os.path.join(self.cwd, "model")
+        self.data_dir = os.path.join(self.cwd, data_dir)
+        self.model_dir = os.path.join(self.cwd, model_dir)
 
     def unpack_mp4(self, video_file):
         vidObj = cv2.VideoCapture(video_file)
@@ -64,7 +65,9 @@ class neural_network:
     def optimizer(self):
         return SGD(lr=0.01, momentum=0.9)
 
-    def create_model(self):
+    def create_model(self, model="model.json", model_weights="model.h5"):
+        self.model_json = os.path.join(self.model_dir, model)
+        self.model_weights = os.path.join(self.model_dir, model_weights)
 
         model = Sequential()
         model.add(
@@ -90,35 +93,51 @@ class neural_network:
             optimizer=self.optimizer(),
             metrics=["accuracy"],
         )
-        return model
+        self.model = model
 
-    def train(self, frames, inputs):
+        with open(self.model_json, "w") as json_file:
+            json_file.write(self.model.to_json())
+
+    def load_model(self, model="model.json", model_weights="model.h5"):
+        self.model_json = os.path.join(self.model_dir, model)
+        self.model_weights = os.path.join(self.model_dir, model_weights)
 
         if len(os.listdir(self.model_dir)) < 1:
-            model = self.create_model()
-        else:
-            with open(os.path.join(self.model_dir, "model.json"), "r") as json_file:
-                loaded_model_json = json_file.read()
-            model = model_from_json(loaded_model_json)
+            return False
 
-            # load weights into new model
-            model.load_weights(os.path.join(self.model_dir, "model.h5"))
-            print("Loaded model from disk")
-            model.compile(
-                loss="mean_squared_error",
-                optimizer=self.optimizer(),
-                metrics=["accuracy"],
-            )
+        with open(self.model_json, "r") as json_file:
+            loaded_model_json = json_file.read()
+        self.model = model_from_json(loaded_model_json)
 
-        frames = np.array(frames)
+        # load weights into new model
+        self.model.load_weights(self.model_weights)
+        print("Loaded model from disk")
+        self.model.compile(
+            loss="mean_squared_error",
+            optimizer=self.optimizer(),
+            metrics=["accuracy"],
+        )
+        return True
+
+
+    def train(self, epochs=50):
+        if self.model is None:
+            print("Model is not loaded, aborting training")
+            return
+
+        print(
+            "Num GPUs Available: ", len(tf.config.list_physical_devices("GPU"))
+        )
+
+        frames = np.array(self.frames)
 
         reshaped_frames = [np.reshape(frame, (imgX, imgy, 3)) for frame in frames]
 
         numpy_reshaped_frames = np.array(reshaped_frames)
 
-        model.summary()
+        self.model.summary()
 
-        model.fit(numpy_reshaped_frames, inputs, epochs=150, batch_size=16)
+        self.model.fit(numpy_reshaped_frames, self.inputs, epochs=epochs, batch_size=16)
 
         print("PREDICTION")
 
@@ -126,53 +145,57 @@ class neural_network:
             test_ar = [frame]
             test_aaaa = np.array(test_ar)
 
-            print(model.predict(test_aaaa))
+            print(self.model.predict(test_aaaa))
 
-        model_json = model.to_json()
+        self.model.save_weights(self.model_weights)
 
-        with open(os.path.join(self.model_dir, "model.json"), "w") as json_file:
-            json_file.write(model_json)
+    def load_data(self, path):
+        if "dataset.json" not in os.listdir(os.path.join(self.data_dir, path)):
+            print("Error: no dataset.json: {}".format(path))
+            return
+        with open(os.path.join(self.data_dir, path, "dataset.json"), 'r') as f:
+            dataset_info = json.load(f)
+        if (dataset_info["version"] != "1.0.0"):
+            print("Error: unknown dataset.json version: {}".format(dataset_info["version"]))
+            return
 
-        model.save_weights(os.path.join(self.model_dir, "model.h5"))
+        self.frames = []
+        self.inputs = []
 
-    def load_data(self):
-        for i in range(100):
-            for folder in os.listdir(self.data_dir):
-                if folder.startswith('.') or (not os.path.isdir(os.path.join(self.data_dir, folder))):
-                    continue
-                for data in os.listdir(os.path.join(self.data_dir, folder)):
-                    if data.endswith(".mp4"):
-                        frames, h, w = self.unpack_mp4(
-                            os.path.abspath(os.path.join(self.data_dir, folder, data))
-                        )
-
-                    if data.endswith(".csv"):
-                        inputs = loadtxt(
-                            os.path.abspath(os.path.join(self.data_dir, folder, data)),
-                            delimiter=",",
-                        )
-
-                mouse_inputs = []
-
-                normalized_frame = []
-                normalized_frames = []
-
-                for index, frame in enumerate(frames):
-                    for index, pixel in enumerate(frame):
-                        normalized_frame.append(pixel / 255)
-                    normalized_frames.append(normalized_frame)
-                    normalized_frame = []
-
-                print(str(folder))
-                print(f"{asizeof.asizeof(normalized_frames) / 1024}")
-
-                print(
-                    "Num GPUs Available: ", len(tf.config.list_physical_devices("GPU"))
-                )
-
-                self.train(normalized_frames, inputs)
+        frames, h, w = self.unpack_mp4(
+            os.path.abspath(os.path.join(self.data_dir, path, dataset_info["inputs"]))
+        )
+        inputs = loadtxt(
+            os.path.abspath(os.path.join(self.data_dir, path, dataset_info["outputs"])),
+            delimiter=",",
+        )
 
 
-the_bat = neural_network()
+        mouse_inputs = []
 
-the_bat.load_data()
+        normalized_frame = []
+        normalized_frames = []
+
+        for index, frame in enumerate(frames):
+            for index, pixel in enumerate(frame):
+                normalized_frame.append(pixel / 255)
+            normalized_frames.append(normalized_frame)
+            normalized_frame = []
+
+        print(str(folder))
+        print(f"{asizeof.asizeof(normalized_frames) / 1024}")
+
+        self.frames = normalized_frames
+        self.inputs = inputs
+
+
+if __name__ == "__main__":
+    the_bat = neural_network()
+    if not the_bat.load_model():
+        raise SystemExit("Couldn't load model")
+    while True:
+        for folder in os.listdir(the_bat.data_dir):
+            if folder.startswith('.') or (not os.path.isdir(os.path.join(the_bat.data_dir, folder))):
+                continue
+            the_bat.load_data(folder)
+            the_bat.train()
