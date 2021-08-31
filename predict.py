@@ -10,13 +10,11 @@ from tensorflow.keras.optimizers import SGD
 
 from pynput.mouse import Button, Controller
 import keyboard as ky
+import mss
 
-def predict(model, X):
+from queue import Queue
 
-    Y = model.predict(X)
-
-    return Y
-
+key_data_queue = Queue()
 
 def load_model():
     cwd = os.getcwd()
@@ -30,21 +28,17 @@ def load_model():
     # load weights into new model
     model.load_weights(os.path.join(model_dir,"model.h5"))
     print("Loaded model from disk")
-    model.compile(loss='categorical_crossentropy', optimizer=SGD(lr=0.0001), metrics=['categorical_crossentropy'])
+    model.compile(loss='mean_squared_error', optimizer=SGD(lr=0.01, momentum=0.9), metrics=['accuracy'])
     
     return model
 
-def capture(game_name):
+def capture(game_name, ctx):
     
-    img = screen_capture.capture(game_name)
-    topleft , botright = screen_capture.get_cords(game_name)
+    img = cv2.cvtColor(np.array(screen_capture.capture(game_name, ctx)), cv2.COLOR_BGRA2BGR)
+    topleft , botright = np.array(screen_capture.get_cords(game_name))
     image = cv2.resize(img,(90,90),interpolation=cv2.INTER_AREA)
-    #gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    burger = img.shape
-
-    height = burger[0]
-    width = burger[1]
+    height, width, _ = img.shape 
 
     normalized_frame = []
 
@@ -52,7 +46,7 @@ def capture(game_name):
         normalized_frame.append(pixel/255)
 
 
-    reshaped = np.reshape(normalized_frame, (90,90, 3))
+    reshaped = np.reshape(normalized_frame, (90,90,3))
 
     numpy_frames = np.array([reshaped])
 
@@ -61,128 +55,73 @@ def capture(game_name):
 
 
 def main():
-    
-
     model = load_model()
-
     mouse = Controller()
 
-    while True:
-        ky.press
-        time.sleep(1/30)
-        img,h,w,topleft = capture("RotMGExalt")
-        prediction = predict(model, img)
+    paused = True 
+    with mss.mss() as sct:
+        while True:
+            time.sleep(1/30)
+            img,h,w,topleft = capture("RotMGExalt", sct)
+            prediction = model.predict(img)
 
-        if ky.is_pressed('p'):
-            break
+            if ky.is_pressed('b'):
+                break
 
-        print(prediction)
+            if ky.is_pressed('n'):
+                paused = True
 
-        
+            if ky.is_pressed('m'):
+                paused = False 
 
-        # a = []
+            key_data_queue.put(prediction[0])
 
-        # for i in range(4):
-        #     a.append(prediction[0][i])
+            if paused:
+                continue
 
-        # bigger = max(a)
+            x = prediction[0][0] * w + topleft[0]
+            y = prediction[0][1] * h + topleft[1]
 
-        # print(bigger)
+            mouse.position = (x,y)
 
-        # if a[0] == bigger:
-        #     ky.press('left')
-        #     time.sleep(1/30)
-        #     ky.release('left')
-        #     time.sleep(1/30)
-        # if a[1] == bigger:
-        #     ky.press('right')
-        #     time.sleep(1/30)
-        #     ky.release('right')
-        #     time.sleep(1/30)
+            # Left Click
+            if prediction[0][2] > 0.5:
+                mouse.press(Button.left)
 
-        x = prediction[0][0] * w + topleft[0]
-        y = prediction[0][1] * h + topleft[1]
+            if prediction[0][2] <= 0.5:
+                mouse.release(Button.left)
 
-        mouse.position = (x,y)
+            # Keys
+            keys = ['q', 'e', 'w', 'a','s','d','f','v','r',' ']
+            for i, key in enumerate(keys):
+                if prediction[0][i+3] > 0.5:
+                    ky.press(key)
+                else:
+                    ky.release(key)
 
-        button_list = []
+import socket
+import struct
+MSG_MAGIC = 0xDEADBEEF
 
-        for i in range(len(prediction) - 2):
+def key_message(values):
+    return struct.pack('LL', MSG_MAGIC, len(values)) + struct.pack('d'*len(values), *values)
 
-            button_list.append(prediction[i + 2])
-
-        # bigger = max(button_list)
-
-        'q', 'e', 'w', 'a','s','d','f','v','r',' '
-
-        #Left Click
-        if prediction[0][2] > 0.5:
-            mouse.press(Button.left)
-
-        if prediction[0][2] <= 0.5:
-            mouse.release(Button.left)
-
-        if prediction[0][3] > 0.5:
-            ky.press('q')
-        if prediction[0][3] <= 0.5:
-            ky.release('q')
-
-        if prediction[0][4] > 0.5:
-            ky.press('e')
-        if prediction[0][4] <= 0.5:
-            ky.release('e')
+def serve_keyinfo(port):
+    print("Starting keyinfo server...")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(('127.0.0.1', port))
+        sock.listen()
+        print("Server listening on port {}".format(port))
+        conn, addr = sock.accept()
+        with conn:
+            while True:
+                conn.send(key_message(key_data_queue.get()))
 
 
-
-
-
-        if prediction[0][5] > 0.5:
-            ky.press('w')
-        if prediction[0][5] <= 0.5:
-            ky.release('w')
-
-        if prediction[0][6] > 0.5:
-            ky.press('a')
-        if prediction[0][6] <= 0.5:
-            ky.release('a')
-
-        if prediction[0][7] > 0.5:
-            ky.press('s')
-        if prediction[0][7] <= 0.5:
-            ky.release('s')
-
-        if prediction[0][8] > 0.5:
-            ky.press('d')
-        if prediction[0][8] <= 0.5:
-            ky.release('d')
-
-        if prediction[0][9] > 0.5:
-            ky.press('f')
-        if prediction[0][9] <= 0.5:
-            ky.release('f')
-
-        if prediction[0][10] > 0.5:
-            ky.press('v')
-        if prediction[0][10] <= 0.5:
-            ky.release('v')
-
-        if prediction[0][11] > 0.5:
-            ky.press('r')
-        if prediction[0][11] <= 0.5:
-            ky.release('r')
-
-        if prediction[0][12] > 0.5:
-            ky.press(' ')
-        if prediction[0][12] <= 0.5:
-            ky.release(' ')
-
-
-
-
+from threading import Thread
 if __name__ == '__main__':
     print("THIS IS THE START OF THE PROGRAM")
+    keyinfo_thread = Thread(target=serve_keyinfo, args=(6624,))
+    keyinfo_thread.daemon = True
+    keyinfo_thread.start()
     main()
-
-
-
-
